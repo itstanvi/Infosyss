@@ -1,121 +1,52 @@
-import os
-import requests
 import pandas as pd
-from datetime import datetime
-from openai import ChatCompletion
-from transformers import pipeline
 from dotenv import load_dotenv
+import os
 
 
 load_dotenv()
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-NEWS_API_KEY = os.getenv("NEWS_API_KEY")
-
-
 inventory = {
-    "microchips": {"quantity": 500, "threshold": 100},
-    "circuit boards": {"quantity": 300, "threshold": 50},
-    "semiconductors": {"quantity": 200, "threshold": 30}
+    "microchips": {"capacity": 1000, "threshold": 0.8},  # 80% capacity considered high
+    "circuit boards": {"capacity": 500, "threshold": 0.8},
+    "semiconductors": {"capacity": 300, "threshold": 0.8}
 }
 
-def initialize_openai():
-    ChatCompletion.api_key = OPENAI_API_KEY
+def analyze_inventory_data(file_path):
+    # Load the CSV data
+    data = pd.read_csv(file_path)
 
-def initialize_llama():
-    return pipeline("text-classification", model="facebook/bart-large-mnli")
+    alerts = []
 
-def fetch_news(api_url, query_params):
-    try:
-        response = requests.get(api_url, params=query_params)
-        response.raise_for_status()
-        return response.json()
-    except Exception as e:
-        print(f"Error fetching news: {e}")
-        return None
+    for index, row in data.iterrows():
+        item = row['Item']
+        capacity = inventory[item]['capacity']
+        threshold = inventory[item]['threshold']
+        utilization = row['Quantity'] / capacity
 
-def analyze_risk_with_gpt(content):
-    try:
-        response = ChatCompletion.create(
-            model="gpt-4",
-            messages=[
-                {"role": "system", "content": "You are an expert in supply chain risk analysis."},
-                {"role": "user", "content": content}
-            ]
-        )
-        return response.choices[0].message['content']
-    except Exception as e:
-        print(f"Error with OpenAI GPT: {e}")
-        return None
-
-def analyze_sentiment_with_llama(content, llama_pipeline):
-    try:
-        results = llama_pipeline(content)
-        return results
-    except Exception as e:
-        print(f"Error with LLaMA: {e}")
-        return None
-
-def aggregate_data(news_data):
-    try:
-        structured_data = []
-        for article in news_data['articles']:
-            structured_data.append({
-                "source": article['source']['name'],
-                "title": article['title'],
-                "description": article['description'],
-                "content": article['content'],
-                "published_at": article['publishedAt']
-            })
-        return pd.DataFrame(structured_data)
-    except Exception as e:
-        print(f"Error structuring data: {e}")
-        return None
-
-def notify_inventory_issue(item, message):
-    print(f"Notification: {item} - {message}")
-
-def manage_inventory(analysis_results):
-    for item in inventory:
-        if any(keyword in analysis_results.lower() for keyword in [item, "shortage", "disruption"]):
-            current_quantity = inventory[item]["quantity"]
-            threshold = inventory[item]["threshold"]
-            if current_quantity < threshold:
-                notify_inventory_issue(item, "Low inventory detected, please restock.")
+        if utilization > threshold or row['Risk Analysis'] == "High":
+            if row['Sentiment'] == "Negative":
+                alerts.append((row['Item'], "SELL", f"High utilization ({utilization:.2f}), {row['Risk Analysis']} risk, {row['Sentiment']} sentiment"))
             else:
-                notify_inventory_issue(item, "Inventory levels are adequate, no action needed.")
+                alerts.append((row['Item'], "MONITOR", f"High utilization ({utilization:.2f}) with {row['Risk Analysis']} risk"))
+        elif utilization < 0.4:  # If utilization is very low
+            alerts.append((row['Item'], "BUY", f"Low utilization ({utilization:.2f}), consider buying material"))
 
-def main():
-    initialize_openai()
-    llama_pipeline = initialize_llama()
+    return alerts
 
-    news_api_url = "https://newsapi.org/v2/everything"
-    query_params = {
-        "q": "supply chain disruption",
-        "from": datetime.now().strftime('%Y-%m-%d'),
-        "sortBy": "relevance",
-        "apiKey": NEWS_API_KEY
-    }
+data = {
+    'Item': ['microchips', 'circuit boards', 'semiconductors'],
+    'Quantity': [850, 400, 120],
+    'Risk Analysis': ['Medium', 'High', 'Low'],
+    'Sentiment': ['Neutral', 'Negative', 'Positive']
+}
 
-    news_data = fetch_news(news_api_url, query_params)
-    if not news_data:
-        print("No data fetched.")
-        return
 
-    structured_data = aggregate_data(news_data)
-    if structured_data is None:
-        print("Error aggregating data.")
-        return
+sample_file = "inventory_data.csv"
+pd.DataFrame(data).to_csv(sample_file, index=False)
 
-    for _, row in structured_data.iterrows():
-        print(f"Analyzing article: {row['title']}")
-        gpt_analysis = analyze_risk_with_gpt(row['content'])
-        print("\nRisk Analysis:")
-        print(gpt_analysis)
 
-        sentiment_analysis = analyze_sentiment_with_llama(row['content'], llama_pipeline)
-        print("\nSentiment Analysis:")
-        print(sentiment_analysis)
-        print("\n---\n")
+alerts = analyze_inventory_data(sample_file)
 
-      
+
+for alert in alerts:
+    print(f"Item: {alert[0]}, Action: {alert[1]}, Reason: {alert[2]}")
