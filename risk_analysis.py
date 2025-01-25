@@ -1,101 +1,83 @@
-import os
 import requests
 import pandas as pd
 from datetime import datetime
-from openai import ChatCompletion
+import openai  # Updated OpenAI import
 from transformers import pipeline
 from dotenv import load_dotenv
+import os
 
-# Load environment variables from .env
-load_dotenv()
+load_dotenv()  # Load environment variables
 
+# Load API Keys
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 NEWS_API_KEY = os.getenv("NEWS_API_KEY")
 
-def initialize_openai():
-    ChatCompletion.api_key = OPENAI_API_KEY
+# Initialize OpenAI API and sentiment analysis pipeline
+openai.api_key = OPENAI_API_KEY  # Updated for new API usage
+llama_pipeline = pipeline("text-classification", model="facebook/bart-large-mnli")
 
-def initialize_llama():
-    return pipeline("text-classification", model="facebook/bart-large-mnli")
-
-def fetch_news(api_url, query_params):
-    try:
-        response = requests.get(api_url, params=query_params)
-        response.raise_for_status()
-        return response.json()
-    except Exception as e:
-        print(f"Error fetching news: {e}")
-        return None
-
-def analyze_risk_with_gpt(content):
-    try:
-        response = ChatCompletion.create(
-            model="gpt-4",
-            messages=[
-                {"role": "system", "content": "You are an expert in supply chain risk analysis."},
-                {"role": "user", "content": content}
-            ]
-        )
-        return response.choices[0].message['content']
-    except Exception as e:
-        print(f"Error with OpenAI GPT: {e}")
-        return None
-
-def analyze_sentiment_with_llama(content, llama_pipeline):
-    try:
-        results = llama_pipeline(content)
-        return results
-    except Exception as e:
-        print(f"Error with LLaMA: {e}")
-        return None
-
-def aggregate_data(news_data):
-    try:
-        structured_data = []
-        for article in news_data['articles']:
-            structured_data.append({
-                "source": article['source']['name'],
-                "title": article['title'],
-                "description": article['description'],
-                "content": article['content'],
-                "published_at": article['publishedAt']
-            })
-        return pd.DataFrame(structured_data)
-    except Exception as e:
-        print(f"Error structuring data: {e}")
-        return None
-
-def main():
-    initialize_openai()
-    llama_pipeline = initialize_llama()
-
-    news_api_url = "https://newsapi.org/v2/everything"
-    query_params = {
-        "q": "supply chain disruption",
-        "from": datetime.now().strftime('%Y-%m-%d'),
+# Function to fetch news
+def fetch_news(query, api_key):
+    url = "https://newsapi.org/v2/everything"
+    params = {
+        "q": query,
+        "apiKey": api_key,
+        "from": "2025-01-01",  # You can set a static start date to ensure older articles are included
         "sortBy": "relevance",
-        "apiKey": NEWS_API_KEY
+        "language": "en",
     }
+    response = requests.get(url, params=params)
+    
+    if response.status_code == 200:
+        print("News API Response:", response.json())  # Print the full response
+        return response.json()
+    else:
+        print(f"Error fetching news: {response.status_code}")
+        return None
 
-    news_data = fetch_news(news_api_url, query_params)
-    if not news_data:
-        print("No data fetched.")
-        return
+# Updated function to analyze risk with new OpenAI API
+def analyze_risk(content):
+    try:
+        response = openai.Completion.create(
+            model="text-davinci-003",  # Example model, adjust as per your preference
+            prompt=f"Analyze the risk of the following text: {content}",
+            max_tokens=100,
+            temperature=0.5
+        )
+        return response.choices[0].text.strip()  # Return the analyzed text
+    except Exception as e:
+        print(f"Error analyzing risk: {e}")
+        return None
 
-    structured_data = aggregate_data(news_data)
-    if structured_data is None:
-        print("Error aggregating data.")
-        return
+# Sentiment analysis using LLaMA
+def analyze_sentiment(content):
+    return llama_pipeline(content)
 
-    for _, row in structured_data.iterrows():
-        print(f"Analyzing article: {row['title']}")
-        gpt_analysis = analyze_risk_with_gpt(row['content'])
-        print("\nRisk Analysis:")
-        print(gpt_analysis)
-        sentiment_analysis = analyze_sentiment_with_llama(row['content'], llama_pipeline)
-        print("\nSentiment Analysis:")
-        print(sentiment_analysis)
-        print("\n---\n")
+# Process fetched news data
+def process_news_data(news_data):
+    structured_data = []
+    for article in news_data["articles"]:
+        content = article["content"]
+        risk_analysis = analyze_risk(content)
+        sentiment_analysis = analyze_sentiment(content)
+        structured_data.append({
+            "title": article["title"],
+            "description": article["description"],
+            "content": content,
+            "published_at": article["publishedAt"],
+            "risk_analysis": risk_analysis,
+            "sentiment": sentiment_analysis[0]["label"]
+        })
+    return pd.DataFrame(structured_data)
+
+# Main function to execute the pipeline
+def main():
+    api_key = NEWS_API_KEY
+    query = "chips"
+    news_data = fetch_news(query, api_key)
+    if news_data and "articles" in news_data:
+        df = process_news_data(news_data)
+        print(df)
 
 if __name__ == "__main__":
     main()
