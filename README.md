@@ -1,4 +1,5 @@
-# Infosyss
+My project is " AI-Driven Supply Chain Disruption Predictor and Inventory Optimization System "
+
 I Researched about LLM and i found that ,Several LLMs can be applied to supply chain management for tasks such as demand forecasting, optimizing logistics, analyzing supplier risks, and improving communication. Some commonly used models and frameworks include:
 
 ChatGPT / GPT-4: Used for generating insights, customer support, and supply chain documentation.
