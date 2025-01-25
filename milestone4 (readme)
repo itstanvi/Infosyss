@@ -1,0 +1,63 @@
+Overview
+In this milestone, we implemented an automated system that analyzes the inventory of materials and sends notifications based on their utilization levels. The goal of this project was to provide real-time alerts for the supply chain management system to improve decision-making and optimize the stock of materials.
+
+Gap in Product
+Before implementing this system, the supply chain management process was largely manual and reactive. The key gap identified was the lack of automated notifications that could help stakeholders manage inventory in real-time. As a result, inventory utilization was not being monitored effectively, which could lead to issues such as overstocking or stockouts.
+
+Problem: The inventory was not being proactively monitored, which resulted in suboptimal management of materials.
+Impact: Potential overstock or stockout issues could affect production timelines, causing inefficiencies in the supply chain.
+Solution to the Gap
+To bridge this gap, we developed an automated inventory notification system. This system automatically analyzes inventory data and sends notifications based on the following criteria:
+
+High utilization: If the inventory utilization exceeds 80%, an action is triggered, such as selling the inventory (if the associated risk is high) or monitoring the situation.
+Low utilization: If inventory utilization drops below 40%, the system recommends buying additional material to avoid stockouts.
+The notifications are sent through WhatsApp using Twilio, making them easily accessible to the relevant stakeholders.
+
+How the Gap Was Solved
+The system was built to handle two key aspects:
+
+Inventory Analysis: We analyzed the inventory utilization by comparing the quantity of items in stock to their capacity.
+Automated Alerts: The system sends automated notifications to relevant stakeholders based on the analysis of inventory levels, thus addressing the issue of manual monitoring.
+The notifications are automatically generated and sent using Twilio's WhatsApp API.
+
+Data Source
+The data used to analyze the inventory and trigger notifications came from a CSV file containing the following sample data:
+
+plaintext
+Copy
+Edit
+Item                | Quantity | Capacity | Risk Analysis | Sentiment
+--------------------|----------|----------|---------------|----------
+microchips          | 850      | 1000     | Medium        | Neutral
+circuit boards      | 400      | 500      | High          | Negative
+semiconductors      | 120      | 300      | Low           | Positive
+Data Collection: The data was manually created for testing purposes and saved in a CSV file (inventory_data.csv). In a real-world scenario, this data would come from an inventory management system or a database.
+How the Data Was Used
+The data was used in the following way:
+
+Inventory Utilization Calculation: The system calculates the utilization of each item by dividing the Quantity by the Capacity.
+Example: For microchips, the utilization is 850 / 1000 = 0.85 (85% utilization).
+Alert Generation: Based on the calculated utilization, the system generates alerts. If utilization exceeds 80%, it suggests an action to be taken (sell or monitor). If utilization drops below 40%, the system recommends buying additional inventory.
+Key Technologies Used
+Twilio API: Used for sending WhatsApp notifications to alert stakeholders.
+Pandas: Used for reading and processing inventory data stored in CSV format.
+Python: The entire logic was implemented in Python.
+How Notifications Are Sent
+When the inventory is analyzed and certain thresholds are met, the system sends WhatsApp notifications using the Twilio API. Here's an example of how the notifications are structured:
+
+plaintext
+Copy
+Edit
+Item: microchips
+Action: MONITOR
+Reason: High utilization (0.85) with Medium risk
+Challenges Faced
+API Integration: Initially, integrating Twilio's WhatsApp API posed challenges, especially with formatting the messages correctly.
+Data Handling: Ensuring that the inventory data was properly processed and the alerts were triggered based on the correct utilization thresholds required careful data validation.
+Future Improvements
+Automated Data Fetching: Integrating the system with real-time inventory data from a database or ERP system.
+Additional Notification Channels: Expanding the notification system to include email or other messaging platforms in case WhatsApp is not suitable for all stakeholders.
+Advanced Analytics: Implementing more complex risk analysis, such as predicting future stock levels based on usage patterns and market conditions.
+Conclusion
+This milestone successfully addresses the gap in automated inventory management by providing an intelligent system that not only monitors inventory but also sends actionable alerts to stakeholders. The solution helps ensure that inventory is optimally managed, reducing the risk of both overstock and stockouts.
+
