@@ -1,34 +1,37 @@
 from flask import Flask, request, jsonify
 import requests
+import os
 
+# Your News API key
+NEWS_API_KEY = "c2326b45d9bd45caba2e2e4866c6844a"
+
+# Flask app setup
 app = Flask(__name__)
 
-NEWS_API_KEY = "c2326b45d9bd45caba2e2e4866c6844a" 
-
-def fetch_news(query, from_date, to_date):
-    api_url = "https://newsapi.org/v2/everything"
-    query_params = {
-        "q": query,
-        "from": from_date,
-        "to": to_date,
-        "sortBy": "relevance",
-        "apiKey": NEWS_API_KEY
-    }
-    try:
-        response = requests.get(api_url, params=query_params)
-        response.raise_for_status()
-        return response.json()
-    except Exception as e:
-        return {"error": str(e)}
+# News API URL
+NEWS_API_URL = "https://newsapi.org/v2/everything"
 
 @app.route('/fetch-news', methods=['GET'])
-def get_news():
-    query = request.args.get('query', 'supply chain')
-    from_date = request.args.get('from', '2023-01-01')
-    to_date = request.args.get('to', '2023-12-31')
-    
-    news_data = fetch_news(query, from_date, to_date)
-    return jsonify(news_data)
+def fetch_news():
+    # Get query parameters
+    keyword = request.args.get('keyword', 'chips')  # Default keyword: chips
+    from_date = request.args.get('from', '2025-01-01')  # Default from date
+    to_date = request.args.get('to', '2025-01-25')  # Default to date
 
-if __name__ == '__main__':
+    # Fetch data from News API
+    params = {
+        "q": keyword,
+        "from": from_date,
+        "to": to_date,
+        "apiKey": NEWS_API_KEY
+    }
+    response = requests.get(NEWS_API_URL, params=params)
+
+    # Check response status
+    if response.status_code == 200:
+        return jsonify(response.json())
+    else:
+        return jsonify({"error": "Failed to fetch news", "status_code": response.status_code}), 500
+
+if __name__ == "__main__":
     app.run(debug=True)
