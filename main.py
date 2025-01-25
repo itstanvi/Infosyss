@@ -2,23 +2,23 @@ from flask import Flask, request, jsonify
 import requests
 import os
 
-# Your News API key
+
 NEWS_API_KEY = "c2326b45d9bd45caba2e2e4866c6844a"
 
-# Flask app setup
+
 app = Flask(__name__)
 
-# News API URL
+
 NEWS_API_URL = "https://newsapi.org/v2/everything"
 
 @app.route('/fetch-news', methods=['GET'])
 def fetch_news():
-    # Get query parameters
+
     keyword = request.args.get('keyword', 'chips')  # Default keyword: chips
     from_date = request.args.get('from', '2025-01-01')  # Default from date
     to_date = request.args.get('to', '2025-01-25')  # Default to date
 
-    # Fetch data from News API
+
     params = {
         "q": keyword,
         "from": from_date,
@@ -27,7 +27,7 @@ def fetch_news():
     }
     response = requests.get(NEWS_API_URL, params=params)
 
-    # Check response status
+
     if response.status_code == 200:
         return jsonify(response.json())
     else:
